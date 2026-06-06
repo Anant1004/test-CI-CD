@@ -1,3 +1,4 @@
+
 import { useState } from "react"
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom"
 import { LoginPage } from "@/pages/auth/login"
@@ -7,66 +8,90 @@ import { AddPatientPage } from "@/pages/patients/new"
 import { PatientReportsPage } from "@/pages/patients/reports"
 import { AppointmentsPage } from "@/pages/appointments"
 import { SettingsPage } from "@/pages/settings"
+import { RolesPage } from "@/pages/settings/roles"
+import { CreateRolePage } from "@/pages/settings/roles/new"
 import { MainLayout } from "@/components/layout/main-layout"
 
-export function App() {
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(() => {
-    if (typeof window !== 'undefined') {
-      return localStorage.getItem('isAuthenticated') === 'true'
-    }
-    return false
-  })
+// Helper function to check permissions
+const hasPermission = (pageId: string, action: 'view' | 'create' | 'edit' | 'delete') => {
+  const userJson = localStorage.getItem('user');
+  if (!userJson) return false;
 
-  const handleLogin = () => {
-    setIsAuthenticated(true)
-  }
+  const user = JSON.parse(userJson);
+  if (user.role?.id === 'super-admin') return true;
+
+  const permission = user.role?.permissions?.[pageId];
+  return permission ? permission[action] : false;
+};
+
+export function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(() => {
+    return localStorage.getItem('isAuthenticated') === 'true';
+  });
 
   const handleLogout = () => {
-    setIsAuthenticated(false)
     localStorage.removeItem('isAuthenticated');
-    localStorage.removeItem('username');
-  }
+    localStorage.removeItem('user');
+    setIsAuthenticated(false);
+  };
 
-  if (isAuthenticated === null) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-background">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
-      </div>
-    )
-  }
 
   return (
     <BrowserRouter>
       <Routes>
-        {/* Auth Route */}
-        <Route 
-          path="/login" 
+        <Route
+          path="/login"
           element={
-            isAuthenticated ? <Navigate to="/" replace /> : <LoginPage onLogin={handleLogin} />
-          } 
+            isAuthenticated ? <Navigate to="/" replace /> : <LoginPage onLogin={() => setIsAuthenticated(true)} />
+          }
         />
 
-        {/* Protected Routes */}
-        <Route 
-          path="/" 
+        <Route
+          path="/"
           element={
             isAuthenticated ? <MainLayout onLogout={handleLogout} /> : <Navigate to="/login" replace />
           }
         >
-          <Route index element={<DashboardPage />} />
-          
-          {/* Patients Module */}
+          <Route index element={
+            hasPermission('dashboard', 'view') ? <DashboardPage /> : <Navigate to="/unauthorized" />
+          } />
+
           <Route path="patients">
-            <Route index element={<PatientsPage />} />
-            <Route path="new" element={<AddPatientPage />} />
-            <Route path="reports" element={<PatientReportsPage />} />
+            <Route index element={
+              hasPermission('patients', 'view') ? <PatientsPage /> : <Navigate to="/unauthorized" />
+            } />
+            <Route path="new" element={
+              hasPermission('patients', 'create') ? <AddPatientPage /> : <Navigate to="/patients" />
+            } />
+            <Route path="reports" element={
+              hasPermission('patients', 'view') ? <PatientReportsPage /> : <Navigate to="/patients" />
+            } />
           </Route>
 
-          <Route path="appointments" element={<AppointmentsPage />} />
-          <Route path="settings" element={<SettingsPage />} />
+          <Route path="appointments" element={
+            hasPermission('appointments', 'view') ? <AppointmentsPage /> : <Navigate to="/unauthorized" />
+          } />
+
+          <Route path="settings/roles">
+            <Route index element={
+              hasPermission('roles', 'view') ? <RolesPage /> : <Navigate to="/unauthorized" />
+            } />
+            <Route path="new" element={
+              hasPermission('roles', 'create') ? <CreateRolePage /> : <Navigate to="/settings/roles" />
+            } />
+          </Route>
+
+          <Route path="settings" element={
+            hasPermission('settings', 'view') ? <SettingsPage /> : <Navigate to="/unauthorized" />
+          } />
         </Route>
 
-        {/* Fallback */}
+        <Route path="/unauthorized" element={
+          <div className="flex flex-col items-center justify-center min-h-screen">
+            <h1 className="text-2xl font-bold">Unauthorized</h1>
+            <p className="text-muted-foreground">You do not have permission to access this page.</p>
+          </div>
+        } />
         <Route path="*" element={<Navigate to={isAuthenticated ? "/" : "/login"} replace />} />
       </Routes>
     </BrowserRouter>

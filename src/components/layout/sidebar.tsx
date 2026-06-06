@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
@@ -9,11 +10,11 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { HugeiconsIcon } from '@hugeicons/react';
-import { 
-  Logout01Icon, 
-  Layout01Icon, 
-  UserGroupIcon, 
-  Calendar03Icon, 
+import {
+  Logout01Icon,
+  Layout01Icon,
+  UserGroupIcon,
+  Calendar03Icon,
   Settings02Icon,
   SidebarLeftIcon,
   Menu01Icon,
@@ -22,7 +23,7 @@ import {
 } from '@hugeicons/core-free-icons';
 import { cn } from '@/lib/utils';
 import {
-  DndContext, 
+  DndContext,
   closestCenter,
   KeyboardSensor,
   PointerSensor,
@@ -38,7 +39,8 @@ import {
   useSortable,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, type Location } from 'react-router-dom';
+import { hasPermission } from '@/lib/rbac-utils';
 
 interface SidebarProps {
   isCollapsed: boolean;
@@ -62,9 +64,9 @@ interface MenuItem {
 
 const DEFAULT_MENU_ITEMS: MenuItem[] = [
   { id: 'dashboard', icon: Layout01Icon, label: 'Dashboard', path: '/' },
-  { 
-    id: 'patients', 
-    icon: UserGroupIcon, 
+  {
+    id: 'patients',
+    icon: UserGroupIcon,
     label: 'Patients',
     subItems: [
       { id: 'all-patients', label: 'All Patients', path: '/patients' },
@@ -73,19 +75,28 @@ const DEFAULT_MENU_ITEMS: MenuItem[] = [
     ]
   },
   { id: 'appointments', icon: Calendar03Icon, label: 'Appointments', path: '/appointments' },
+  {
+    id: 'roles',
+    icon: Settings02Icon,
+    label: 'Role Management',
+    subItems: [
+      { id: 'view-roles', label: 'All Roles', path: '/settings/roles' },
+      { id: 'create-role', label: 'Create Role', path: '/settings/roles/new' },
+    ]
+  },
   { id: 'settings', icon: Settings02Icon, label: 'Settings', path: '/settings' },
 ];
 
-const SortableMenuItem = ({ 
-  item, 
-  isCollapsed, 
+const SortableMenuItem = ({
+  item,
+  isCollapsed,
   navigate,
   location
-}: { 
-  item: MenuItem, 
-  isCollapsed: boolean, 
+}: {
+  item: MenuItem,
+  isCollapsed: boolean,
   navigate: (path: string) => void,
-  location: any
+  location: Location
 }) => {
   const [isOpen, setIsOpen] = useState(false);
   const {
@@ -146,8 +157,8 @@ const SortableMenuItem = ({
                 <span className="text-[10px] font-bold tracking-widest text-muted-foreground">{item.label}</span>
               </div>
               {item.subItems?.map(sub => (
-                <DropdownMenuItem 
-                  key={sub.id} 
+                <DropdownMenuItem
+                  key={sub.id}
                   onClick={() => navigate(sub.path)}
                   className={cn(
                     "cursor-pointer font-bold text-[11px] tracking-wider py-2",
@@ -171,8 +182,8 @@ const SortableMenuItem = ({
     <div ref={setNodeRef} style={style} className="relative w-full flex flex-col gap-1 px-2 py-0">
       <div className="flex items-center w-full gap-0.5 group">
         {!isCollapsed && (
-          <div 
-            {...attributes} 
+          <div
+            {...attributes}
             {...listeners}
             className="opacity-40 hover:opacity-100 cursor-grab active:cursor-grabbing text-muted-foreground transition-opacity p-1 shrink-0"
           >
@@ -186,8 +197,8 @@ const SortableMenuItem = ({
               onClick={handleMainClick}
               className={cn(
                 "flex-1 transition-all duration-200 relative",
-                isCollapsed 
-                  ? "px-0 justify-center h-11" 
+                isCollapsed
+                  ? "px-0 justify-center h-11"
                   : "px-3 justify-start h-11 gap-3",
                 isActive
                   ? (isCollapsed ? 'text-primary bg-primary/5' : 'bg-primary/10 text-primary hover:bg-primary/15')
@@ -209,13 +220,13 @@ const SortableMenuItem = ({
                     {item.label}
                   </span>
                   {hasSubItems && (
-                    <HugeiconsIcon 
-                      icon={ArrowDown01Icon} 
-                      size={14} 
+                    <HugeiconsIcon
+                      icon={ArrowDown01Icon}
+                      size={14}
                       className={cn(
                         "ml-auto transition-transform duration-300",
                         isOpen ? "rotate-180" : ""
-                      )} 
+                      )}
                     />
                   )}
                 </>
@@ -240,8 +251,8 @@ const SortableMenuItem = ({
               onClick={() => navigate(sub.path)}
               className={cn(
                 "justify-start h-9 px-3 text-[10px] font-bold tracking-widest transition-all",
-                location.pathname === sub.path 
-                  ? "text-primary bg-primary/5" 
+                location.pathname === sub.path
+                  ? "text-primary bg-primary/5"
                   : "text-muted-foreground hover:text-primary hover:bg-primary/5"
               )}
             >
@@ -254,33 +265,38 @@ const SortableMenuItem = ({
   );
 };
 
-export const Sidebar: React.FC<SidebarProps> = ({ 
-  isCollapsed, 
-  setIsCollapsed, 
+export const Sidebar: React.FC<SidebarProps> = ({
+  isCollapsed,
+  setIsCollapsed,
   onLogout
 }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  
+
+  const filteredItems = DEFAULT_MENU_ITEMS.filter(item => {
+    const pageId = item.id === 'roles' ? 'roles' : item.id;
+    return hasPermission(pageId, 'view');
+  });
+
   const [items, setItems] = useState<MenuItem[]>(() => {
     const saved = localStorage.getItem('sidebarOrder');
     if (saved) {
       try {
         const order = JSON.parse(saved) as string[];
         const savedItems = order
-          .map(id => DEFAULT_MENU_ITEMS.find(item => item.id === id))
+          .map(id => filteredItems.find(item => item.id === id))
           .filter((item): item is MenuItem => item !== undefined);
-        
-        const newItems = DEFAULT_MENU_ITEMS.filter(
+
+        const newItems = filteredItems.filter(
           item => !order.includes(item.id)
         );
-        
+
         return [...savedItems, ...newItems];
-      } catch (e) {
-        return DEFAULT_MENU_ITEMS;
+      } catch {
+        return filteredItems;
       }
     }
-    return DEFAULT_MENU_ITEMS;
+    return filteredItems;
   });
 
   const sensors = useSensors(
@@ -309,13 +325,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
   };
 
   return (
-    <aside 
+    <aside
       className={cn(
         "border-r border-border bg-background hidden md:flex flex-col transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)]",
         isCollapsed ? "w-14" : "w-60"
       )}
     >
-      {/* Brand Section */}
       <div className={cn(
         "h-16 flex items-center transition-all duration-500",
         isCollapsed ? "justify-center px-0" : "justify-between px-6"
@@ -328,15 +343,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span className="font-black text-base uppercase tracking-tighter">Hospi</span>
           </div>
         )}
-        <Button 
-          variant="ghost" 
-          size="icon" 
+        <Button
+          variant="ghost"
+          size="icon"
           className="h-9 w-9 text-muted-foreground hover:bg-primary/5 hover:text-primary transition-colors"
           onClick={() => setIsCollapsed(!isCollapsed)}
         >
-          <HugeiconsIcon 
-            icon={isCollapsed ? Menu01Icon : SidebarLeftIcon} 
-            size={18} 
+          <HugeiconsIcon
+            icon={isCollapsed ? Menu01Icon : SidebarLeftIcon}
+            size={18}
           />
         </Button>
       </div>
@@ -345,22 +360,21 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <Separator className="opacity-40" />
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 py-2 space-y-0 overflow-y-auto scrollbar-none">
-        <DndContext 
+        <DndContext
           sensors={sensors}
           collisionDetection={closestCenter}
           onDragEnd={handleDragEnd}
         >
-          <SortableContext 
+          <SortableContext
             items={items.map(i => i.id)}
             strategy={verticalListSortingStrategy}
           >
             {items.map((item) => (
-              <SortableMenuItem 
-                key={item.id} 
-                item={item} 
-                isCollapsed={isCollapsed} 
+              <SortableMenuItem
+                key={item.id}
+                item={item}
+                isCollapsed={isCollapsed}
                 navigate={navigate}
                 location={location}
               />
@@ -369,13 +383,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </DndContext>
       </nav>
 
-      {/* Logout Action */}
       <div className="p-2 mt-auto">
         <Separator className="mb-4 opacity-40 mx-2" />
         <Tooltip delayDuration={0}>
           <TooltipTrigger asChild>
-            <Button 
-              variant="ghost" 
+            <Button
+              variant="ghost"
               className={cn(
                 "w-full transition-all text-muted-foreground hover:text-destructive hover:bg-destructive/5",
                 isCollapsed ? "px-0 justify-center h-11" : "px-3 justify-start h-11 gap-3"

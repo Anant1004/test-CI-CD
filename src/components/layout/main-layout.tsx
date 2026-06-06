@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Sidebar } from './sidebar';
 import { TooltipProvider } from '@/components/ui/tooltip';
@@ -11,14 +12,20 @@ interface MainLayoutProps {
 
 export const MainLayout: React.FC<MainLayoutProps> = ({ onLogout }) => {
   const [isCollapsed, setIsCollapsed] = useState(true);
-  const username = localStorage.getItem('username') || 'User';
   const location = useLocation();
+  
+  const userJson = localStorage.getItem('user');
+  const user = userJson ? JSON.parse(userJson) : null;
+  const username = user?.username || 'User';
+  const roleName = user?.role?.name || 'User';
 
   const getPageTitle = () => {
     const path = location.pathname;
     if (path === '/') return 'Hospital Overview';
     if (path === '/patients') return 'Patients Directory';
     if (path === '/appointments') return 'Appointments';
+    if (path === '/settings/roles') return 'Role Management';
+    if (path === '/settings/roles/new') return 'Create New Role';
     if (path === '/settings') return 'System Settings';
     return 'Hospi';
   };
@@ -44,7 +51,7 @@ export const MainLayout: React.FC<MainLayoutProps> = ({ onLogout }) => {
             <div className="flex items-center gap-4">
               <div className="text-right hidden sm:block">
                 <p className="text-sm font-semibold leading-none">{username}</p>
-                <p className="text-[10px] text-muted-foreground mt-1 font-medium uppercase tracking-wider">Administrator</p>
+                <p className="text-[10px] text-muted-foreground mt-1 font-medium uppercase tracking-wider">{roleName}</p>
               </div>
               <Avatar className="h-10 w-10 border-2 border-primary/10 shadow-sm transition-transform hover:scale-105 duration-300">
                 <AvatarImage src="" />
