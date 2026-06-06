@@ -31,13 +31,13 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
           source: "dist/*"
-          target: "C:/deploy-temp/"
+          target: "/C:/HostingSpaces/admin/test.sahibganjdigitallibrary.com/wwwroot/"
 
-      - name: Deploy To IIS
+      - name: Move Dist Contents To wwwroot
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.SERVER_HOST }}
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
           script: |
-            xcopy /E /Y "C:\deploy-temp\dist\*" "C:\HostingSpaces\admin\test.sahibganjdigitallibrary.com\wwwroot\"
+            xcopy /E /Y "C:\HostingSpaces\admin\test.sahibganjdigitallibrary.com\wwwroot\dist\*" "C:\HostingSpaces\admin\test.sahibganjdigitallibrary.com\wwwroot\"
