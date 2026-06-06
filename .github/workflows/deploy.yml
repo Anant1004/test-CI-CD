@@ -31,4 +31,13 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
           source: "dist/*"
-          target: "C:/HostingSpaces/admin/test.sahibganjdigitallibrary.com/wwwroot/"
+          target: "C:/deploy-temp/"
+
+      - name: Deploy To IIS
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.SERVER_HOST }}
+          username: ${{ secrets.SERVER_USER }}
+          password: ${{ secrets.SERVER_PASSWORD }}
+          script: |
+            xcopy /E /Y "C:\deploy-temp\dist\*" "C:\HostingSpaces\admin\test.sahibganjdigitallibrary.com\wwwroot\"
