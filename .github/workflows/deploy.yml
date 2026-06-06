@@ -31,7 +31,7 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
           source: "dist/*"
-          target: "/C:/HostingSpaces/admin/test.sahibganjdigitallibrary.com/wwwroot/"
+          target: "C:/HostingSpaces/admin/test.sahibganjdigitallibrary.com/wwwroot/"
 
       - name: Move Dist Contents To wwwroot
         uses: appleboy/ssh-action@v1.0.3
@@ -40,4 +40,5 @@ jobs:
           username: ${{ secrets.SERVER_USER }}
           password: ${{ secrets.SERVER_PASSWORD }}
           script: |
-            xcopy /E /Y "C:\HostingSpaces\admin\test.sahibganjdigitallibrary.com\wwwroot\dist\*" "C:\HostingSpaces\admin\test.sahibganjdigitallibrary.com\wwwroot\"
+            xcopy /E /I /Y "C:\HostingSpaces\admin\test.sahibganjdigitallibrary.com\wwwroot\dist\*" "C:\HostingSpaces\admin\test.sahibganjdigitallibrary.com\wwwroot\"
+            rmdir /S /Q "C:\HostingSpaces\admin\test.sahibganjdigitallibrary.com\wwwroot\dist"
