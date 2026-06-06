@@ -13,7 +13,7 @@ type ThemeProviderProps = {
 
 type ThemeProviderState = {
   theme: Theme
-  setTheme: (theme: Theme) => void
+  setTheme: (theme: Theme) => void  
 }
 
 const COLOR_SCHEME_QUERY = "(prefers-color-scheme: dark)"
