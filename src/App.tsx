@@ -40,7 +40,7 @@ export function App() {
     <BrowserRouter>
       <Routes>
         <Route
-          path="/login "
+          path="/login"
           element={
             isAuthenticated ? <Navigate to="/" replace /> : <LoginPage onLogin={() => setIsAuthenticated(true)} />
           }
