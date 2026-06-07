@@ -20,7 +20,7 @@ const hasPermission = (pageId: string, action: 'view' | 'create' | 'edit' | 'del
   const user = JSON.parse(userJson);
   if (user.role?.id === 'super-admin') return true;
 
-  const permission = user.role?.permissions?.[pageId];
+  const permission = user.role?.permissions?.[pageId]; 
   return permission ? permission[action] : false;
 };
 
